@@ -1,0 +1,20 @@
+{
+  "model_trained": true,
+  "total_test_samples": 492,
+  "sign_accuracy": 0.8252,
+  "sign_f1_macro": 0.8326,
+  "sign_f1_weighted": 0.8306,
+  "occlusion_accuracy": 0.6077,
+  "occlusion_precision": 0.4655,
+  "occlusion_recall": 0.9586,
+  "occlusion_f1": 0.6267,
+  "total_occluded_detected": 348,
+  "total_clear_detected": 144,
+  "confusion_matrix": {
+    "true_positive": 162,
+    "false_positive": 186,
+    "true_negative": 137,
+    "false_negative": 7
+  },
+  "evaluation_timestamp": "2026-11-18T15:16:29"
+}

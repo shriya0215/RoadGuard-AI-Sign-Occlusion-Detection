@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RoadGuard AI – Autonomous Driving Road Sign Occlusion Detection</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+  <div class="app-layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/>
+            <path d="M12 8v4"/>
+            <path d="M12 16h.01"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>RoadGuard AI <span class="badge">v2.4</span></h1>
+          <div class="brand-subtitle">Autonomous Vision Lab</div>
+        </div>
+      </div>
+
+      <ul class="nav-menu">
+        <li class="nav-item">
+          <a class="nav-link active" data-target="dashboard">
+            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            <span class="nav-text">Dashboard</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-target="scanner">
+            <svg viewBox="0 0 24 24"><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"/><line x1="16" y1="5" x2="22" y2="5"/><line x1="19" y1="2" x2="19" y2="8"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+            <span class="nav-text">AI Sign Scanner</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-target="occlusion-lab">
+            <svg viewBox="0 0 24 24"><path d="m2 22 1-1h3l9-9"/><path d="M14 8 8 14"/><path d="M18 10a4 4 0 0 0-4-4L6 14v4h4l8-8Z"/><path d="m14 6 4 4"/></svg>
+            <span class="nav-text">Occlusion Lab</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-target="comparison">
+            <svg viewBox="0 0 24 24"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
+            <span class="nav-text">Before vs After</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-target="safety">
+            <svg viewBox="0 0 24 24"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span class="nav-text">Safety Alert System</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-target="performance">
+            <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            <span class="nav-text">Model Performance</span>
+          </a>
+        </li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <div class="system-status">
+          <div class="pulse-dot" id="system-status-dot"></div>
+          <div>
+            <div class="status-label">CNN Subsystem</div>
+            <div class="status-val" id="system-status-text">Initializing...</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="main-wrapper">
+      <!-- Topbar -->
+      <header class="topbar">
+        <div class="topbar-title">
+          <h2 id="current-page-title">Dashboard Overview</h2>
+        </div>
+        <div class="topbar-meta">
+          <div class="meta-chip">
+            <span>Arch:</span> <strong>Dual-Head CNN (43+2)</strong>
+          </div>
+          <div class="meta-chip">
+            <span>Input:</span> <strong>64x64 RGB</strong>
+          </div>
+          <span class="badge-status badge-info" id="topbar-model-status">Checking Status...</span>
+        </div>
+      </header>
+
+      <!-- Views Container -->
+      <main class="view-container">
+
+        <!-- ==================== VIEW 1: DASHBOARD ==================== -->
+        <section id="view-dashboard" class="tab-pane active">
+          <!-- Real Metric KPIs -->
+          <div class="grid-kpi">
+            <div class="kpi-card">
+              <div class="kpi-header">
+                <span class="kpi-title">Sign Accuracy</span>
+                <div class="kpi-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
+              </div>
+              <div class="kpi-value kpi-real-value" id="kpi-sign-accuracy">--%</div>
+              <div class="kpi-subtitle">43 GTSRB Classes</div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-header">
+                <span class="kpi-title">Occlusion Precision</span>
+                <div class="kpi-icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+              </div>
+              <div class="kpi-value kpi-real-value" id="kpi-occ-precision">--%</div>
+              <div class="kpi-subtitle">Low False Alarm Rate</div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-header">
+                <span class="kpi-title">Occlusion Recall</span>
+                <div class="kpi-icon"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+              </div>
+              <div class="kpi-value kpi-real-value" id="kpi-occ-recall">--%</div>
+              <div class="kpi-subtitle">Critical Safety Sensitivity</div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-header">
+                <span class="kpi-title">Occlusion F1-Score</span>
+                <div class="kpi-icon"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+              </div>
+              <div class="kpi-value kpi-real-value" id="kpi-occ-f1">--%</div>
+              <div class="kpi-subtitle">Harmonic Mean Metric</div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-header">
+                <span class="kpi-title">Images Evaluated</span>
+                <div class="kpi-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+              </div>
+              <div class="kpi-value kpi-real-value" id="kpi-total-processed">0</div>
+              <div class="kpi-subtitle">Held-out Test Split</div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-header">
+                <span class="kpi-title">Occluded Detected</span>
+                <div class="kpi-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></div>
+              </div>
+              <div class="kpi-value kpi-real-value" id="kpi-total-occluded" style="color: var(--status-warning);">0</div>
+              <div class="kpi-subtitle">Leaves / Mud / Graffiti</div>
+            </div>
+          </div>
+
+          <!-- Charts & Overview -->
+          <div class="grid-2col">
+            <div class="glass-card">
+              <div class="glass-card-header">
+                <h3><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Occlusion Distribution (Clear vs Impaired)</h3>
+              </div>
+              <div style="height: 260px; position: relative;">
+                <canvas id="chart-occlusion-distribution"></canvas>
+              </div>
+            </div>
+
+            <div class="glass-card">
+              <div class="glass-card-header">
+                <h3><svg viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg> Dual-Output Architecture Overview</h3>
+              </div>
+              <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">
+                Joint convolutional feature representation optimized for autonomous vehicle perception:
+              </p>
+              <div style="background: rgba(7, 20, 38, 0.7); border-radius: var(--radius-sm); padding: 14px; font-family: var(--font-mono); font-size: 12px; line-height: 1.8; color: var(--accent-cyan);">
+                <div>[INPUT] 64×64×3 RGB Image</div>
+                <div> &nbsp;↓ &nbsp;ConvBlock 1 (32 filters) + BN + MaxPool</div>
+                <div> &nbsp;↓ &nbsp;ConvBlock 2 (64 filters) + BN + MaxPool</div>
+                <div> &nbsp;↓ &nbsp;ConvBlock 3 (128 filters) + BN + MaxPool</div>
+                <div> &nbsp;↓ &nbsp;GlobalAveragePooling2D + Dense(256)</div>
+                <div style="color: #F8FAFC;"> &nbsp;├── <span style="color:#22C55E;">HEAD 1: Traffic Sign (43 Classes Softmax)</span></div>
+                <div style="color: #F8FAFC;"> &nbsp;└── <span style="color:#F59E0B;">HEAD 2: Occlusion (Clear / Occluded Softmax)</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Session Predictions Table -->
+          <div class="glass-card">
+            <div class="glass-card-header">
+              <h3><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Live Inference History (Current Session)</h3>
+            </div>
+            <div class="table-responsive">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th>Frame #</th>
+                    <th>Detected Sign</th>
+                    <th>Sign Confidence</th>
+                    <th>Occlusion State</th>
+                    <th>Safety Policy Status</th>
+                  </tr>
+                </thead>
+                <tbody id="recent-history-tbody">
+                  <tr>
+                    <td colspan="5" style="text-align: center; color: var(--text-dim); padding: 24px;">
+                      Loading metrics and session history...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== VIEW 2: AI ROAD SIGN SCANNER ==================== -->
+        <section id="view-scanner" class="tab-pane">
+          <div class="grid-2col">
+            <!-- Left: Upload & Preview -->
+            <div class="glass-card">
+              <div class="glass-card-header">
+                <h3><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Input Sign Capture</h3>
+              </div>
+
+              <div class="dropzone" id="scanner-dropzone">
+                <input type="file" id="scanner-file-input" class="file-input" accept="image/*">
+                <div class="dropzone-icon">
+                  <svg viewBox="0 0 24 24"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m16 16-4-4-4 4"/></svg>
+                </div>
+                <div class="dropzone-text">
+                  <h4>Drag and drop road sign image here</h4>
+                  <p>Supports PNG, JPG, JPEG, WEBP (64x64 auto-normalized)</p>
+                </div>
+              </div>
+
+              <!-- Quick Test Sample Signs -->
+              <div class="sample-bar">
+                <span>Quick Test Signs:</span>
+                <button class="sample-chip scanner-sample-btn" data-class-id="1">Speed 30</button>
+                <button class="sample-chip scanner-sample-btn" data-class-id="13">Stop</button>
+                <button class="sample-chip scanner-sample-btn" data-class-id="12">Yield</button>
+                <button class="sample-chip scanner-sample-btn" data-class-id="11">Priority Road</button>
+                <button class="sample-chip scanner-sample-btn" data-class-id="22">Slippery Road</button>
+              </div>
+
+              <!-- Image Preview Box -->
+              <div style="margin-top: 20px;">
+                <div class="preview-box">
+                  <div class="hud-corner hud-tl"></div>
+                  <div class="hud-corner hud-tr"></div>
+                  <div class="hud-corner hud-bl"></div>
+                  <div class="hud-corner hud-br"></div>
+                  <div id="scanner-preview-placeholder" style="color: var(--text-dim); font-size: 13px;">No sign selected</div>
+                  <img id="scanner-preview-img" style="display: none;" alt="Selected Traffic Sign">
+                </div>
+              </div>
+
+              <div style="margin-top: 20px;">
+                <button class="btn btn-primary btn-block" id="scanner-analyze-btn" disabled>
+                  <span class="spinner" id="scanner-spinner"></span>
+                  <span id="scanner-btn-text">Analyze Road Sign</span>
+                </button>
+              </div>
+
+              <div id="scanner-error-box" style="display: none; margin-top: 14px; padding: 12px; background: rgba(239, 68, 68, 0.15); border: 1px solid var(--border-danger); border-radius: var(--radius-sm); color: var(--status-danger); font-size: 13px;"></div>
+            </div>
+
+            <!-- Right: Inference Results -->
+            <div class="glass-card">
+              <div class="glass-card-header">
+                <h3><svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Dual-Head Inference Perception</h3>
+              </div>
+
+              <div id="scanner-results-container" style="display: none;">
+                <!-- Head 1: Sign Classification Result -->
+                <div style="padding: 18px; background: rgba(7, 20, 38, 0.6); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); margin-bottom: 18px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 12px; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Head 1: Sign Classification</span>
+                    <span class="badge-status badge-info" id="res-sign-cat">Speed</span>
+                  </div>
+                  <h3 id="res-sign-name" style="font-size: 20px; font-weight: 700; color: var(--accent-cyan); margin-bottom: 8px;">--</h3>
+                  <div class="meter-row">
+                    <div class="meter-header">
+                      <span>Classification Confidence</span>
+                      <strong id="res-sign-conf" style="color: var(--accent-cyan); font-family: var(--font-mono);">--%</strong>
+                    </div>
+                    <div class="meter-bar">
+                      <div class="meter-fill meter-cyan" id="res-sign-fill" style="width: 0%;"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Head 2: Occlusion Detection Result -->
+                <div style="padding: 18px; background: rgba(7, 20, 38, 0.6); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); margin-bottom: 18px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 12px; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Head 2: Occlusion Assessment</span>
+                    <span class="badge-status" id="res-occ-status">Clear</span>
+                  </div>
+                  <div class="meter-row">
+                    <div class="meter-header">
+                      <span>Occlusion Probability</span>
+                      <strong id="res-occ-conf" style="font-family: var(--font-mono);">--%</strong>
+                    </div>
+                    <div class="meter-bar">
+                      <div class="meter-fill meter-orange" id="res-occ-fill" style="width: 0%;"></div>
+                    </div>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 6px;">
+                    <span>P(Clear): <strong id="res-prob-clear" style="color: #F8FAFC;">--%</strong></span>
+                    <span>P(Occluded): <strong id="res-prob-occluded" style="color: #F8FAFC;">--%</strong></span>
+                  </div>
+                </div>
+
+                <!-- Top Candidates -->
+                <div style="margin-bottom: 18px;">
+                  <div style="font-size: 12px; text-transform: uppercase; color: var(--text-muted); font-weight: 600; margin-bottom: 8px;">
+                    Top Candidate Classes
+                  </div>
+                  <div id="res-candidates-list"></div>
+                </div>
+
+                <!-- Safety Decision Alert Banner -->
+                <div class="safety-banner success" id="res-safety-banner">
+                  <div class="safety-icon" id="res-safety-icon">
+                    <svg viewBox="0 0 24 24"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  </div>
+                  <div class="safety-body">
+                    <h4 id="res-safety-title">NORMAL DETECTION</h4>
+                    <p id="res-safety-rec">Analyzing road sign perception...</p>
+                    <div class="safety-disclaimer" id="res-safety-disclaimer">Academic simulation for research purposes.</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Placeholder when no image analyzed -->
+              <div id="scanner-placeholder-info" style="text-align: center; padding: 60px 20px; color: var(--text-dim);">
+                <svg style="width: 48px; height: 48px; stroke: currentColor; fill: none; margin-bottom: 12px;" viewBox="0 0 24 24"><path d="M2 12h20"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-6"/><path d="M12 2v20"/></svg>
+                <p>Upload a traffic sign image or pick a sample on the left to execute dual-head CNN classification and occlusion detection.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== VIEW 3: OCCLUSION LAB ==================== -->
+        <section id="view-occlusion-lab" class="tab-pane">
+          <div class="grid-2col">
+            <!-- Controls & Original Image -->
+            <div class="glass-card">
+              <div class="glass-card-header">
+                <h3><svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg> Synthetic Occlusion Generator</h3>
+              </div>
+
+              <div style="margin-bottom: 16px;">
+                <label style="font-size: 13px; color: var(--text-muted); display: block; margin-bottom: 8px;">1. Select Occlusion Modality:</label>
+                <div class="type-selector">
+                  <div class="type-chip lab-type-chip selected" data-type="leaves">
+                    <svg viewBox="0 0 24 24"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
+                    <span>Leaves</span>
+                  </div>
+                  <div class="type-chip lab-type-chip" data-type="mud">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12a4 4 0 0 0 8 0"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                    <span>Mud / Dirt</span>
+                  </div>
+                  <div class="type-chip lab-type-chip" data-type="graffiti">
+                    <svg viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/></svg>
+                    <span>Graffiti</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="slider-container">
+                <div class="slider-label">
+                  <span>2. Occlusion Intensity:</span>
+                  <strong id="lab-intensity-val">50%</strong>
+                </div>
+                <input type="range" id="lab-intensity-slider" min="0.10" max="0.95" step="0.05" value="0.50">
+              </div>
+
+              <div style="margin-bottom: 16px;">
+                <label style="font-size: 13px; color: var(--text-muted); display: block; margin-bottom: 6px;">3. Load Base Traffic Sign:</label>
+                <div class="sample-bar" style="margin-top: 0; margin-bottom: 12px;">
+                  <button class="sample-chip lab-sample-chip" data-class-id="1">Speed 30</button>
+                  <button class="sample-chip lab-sample-chip" data-class-id="13">Stop</button>
+                  <button class="sample-chip lab-sample-chip" data-class-id="12">Yield</button>
+                  <button class="sample-chip lab-sample-chip" data-class-id="38">Keep Left</button>
+                </div>
+                <input type="file" id="lab-file-input" style="font-size: 12px; color: var(--text-muted);">
+              </div>
+
+              <div class="preview-box" style="min-height: 180px;">
+                <div id="lab-orig-placeholder" style="color: var(--text-dim); font-size: 13px;">No base sign loaded</div>
+                <img id="lab-orig-img" style="display: none;" alt="Base Traffic Sign">
+              </div>
+
+              <div style="margin-top: 18px;">
+                <button class="btn btn-primary btn-block" id="lab-generate-btn" disabled>
+                  <span class="spinner" id="lab-spinner"></span>
+                  <span id="lab-btn-text">Generate Occlusion</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Generated Occluded Result -->
+            <div class="glass-card">
+              <div class="glass-card-header">
+                <h3><svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg> Synthesized Occluded Sign</h3>
+              </div>
+
+              <div class="preview-box" style="min-height: 280px;">
+                <div class="hud-corner hud-tl"></div>
+                <div class="hud-corner hud-tr"></div>
+                <div class="hud-corner hud-bl"></div>
+                <div class="hud-corner hud-br"></div>
+                <div id="lab-occ-placeholder" style="color: var(--text-dim); font-size: 13px;">Synthesized image will appear here</div>
+                <img id="lab-occ-img" style="display: none;" alt="Occluded Result">
+              </div>
+
+              <div style="display: flex; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--border-subtle); margin-top: 10px;">
+                <span style="font-size: 13px; color: var(--text-muted);">Applied Modality:</span>
+                <strong id="lab-res-type" style="color: var(--accent-cyan);">--</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--border-subtle);">
+                <span style="font-size: 13px; color: var(--text-muted);">Synthesized Intensity:</span>
+                <strong id="lab-res-intensity" style="color: var(--status-warning);">--</strong>
+              </div>
+
+              <div style="margin-top: 24px;">
+                <button class="btn btn-secondary btn-block" id="lab-send-to-scanner-btn" disabled>
+                  <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                  <span>Send to RoadGuard CNN for Prediction</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== VIEW 4: BEFORE VS AFTER ANALYSIS ==================== -->
+        <section id="view-comparison" class="tab-pane">
+          <div class="glass-card" style="margin-bottom: 24px;">
+            <div class="glass-card-header">
+              <h3><svg viewBox="0 0 24 24"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/></svg> Autonomous Perception Degradation Analyzer</h3>
+            </div>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+              Performs side-by-side inference on clean vs occluded variants to quantify confidence loss and detect catastrophic adversarial classification shifts.
+            </p>
+
+            <div style="display: flex; gap: 14px; align-items: center; flex-wrap: wrap;">
+              <span style="font-size: 13px; color: var(--text-muted);">Quick Compare:</span>
+              <button class="sample-chip comp-sample-chip" data-class-id="1">Speed 30</button>
+              <button class="sample-chip comp-sample-chip" data-class-id="13">Stop Sign</button>
+              <button class="sample-chip comp-sample-chip" data-class-id="12">Yield Sign</button>
+              <button class="sample-chip comp-sample-chip" data-class-id="25">Traffic Signals</button>
+              <input type="file" id="comp-file-input" style="font-size: 12px; color: var(--text-muted); margin-left: auto;">
+            </div>
+
+            <div style="display: flex; gap: 20px; align-items: center; margin-top: 16px; flex-wrap: wrap;">
+              <div style="display: flex; gap: 8px;">
+                <span class="sample-chip comp-type-chip selected" data-type="leaves">Leaves</span>
+                <span class="sample-chip comp-type-chip" data-type="mud">Mud</span>
+                <span class="sample-chip comp-type-chip" data-type="graffiti">Graffiti</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 200px;">
+                <span style="font-size: 12px; color: var(--text-muted);">Intensity:</span>
+                <input type="range" id="comp-intensity-slider" min="0.10" max="0.95" step="0.05" value="0.55" style="flex:1;">
+                <strong id="comp-intensity-val" style="color: var(--accent-cyan); font-family: var(--font-mono); font-size: 12px;">55%</strong>
+              </div>
+              <button class="btn btn-primary" id="comp-run-btn" disabled>
+                <span class="spinner" id="comp-spinner"></span>
+                <span id="comp-btn-text">Run Comparative Analysis</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Comparison Results Side by Side -->
+          <div id="comp-results-container" style="display: none;">
+            <!-- Critical Adversarial Alert -->
+            <div id="comp-adversarial-alert" style="display: none; padding: 14px 18px; background: rgba(239, 68, 68, 0.2); border: 1px solid var(--border-danger); border-radius: var(--radius-sm); color: #FCA5A5; font-size: 13px; margin-bottom: 24px;"></div>
+
+            <div class="grid-2col">
+              <!-- Original Side -->
+              <div class="glass-card">
+                <div class="glass-card-header">
+                  <h3 style="color: var(--status-success);"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/></svg> Pristine Road Sign (Ground Truth)</h3>
+                </div>
+                <div class="preview-box" style="margin-bottom: 16px;">
+                  <img id="comp-orig-img" alt="Original Sign">
+                </div>
+                <div style="padding: 14px; background: rgba(7, 20, 38, 0.6); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+                  <div style="font-size: 12px; color: var(--text-muted);">Class Prediction:</div>
+                  <h4 id="comp-orig-sign" style="font-size: 18px; color: var(--text-main); margin-bottom: 6px;">--</h4>
+                  <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px;">
+                    <span>Sign Confidence:</span>
+                    <strong id="comp-orig-conf" style="color: var(--status-success); font-family: var(--font-mono);">--%</strong>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                    <span>Occlusion Status:</span>
+                    <span id="comp-orig-occ" class="badge-status badge-success">Clear</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Occluded Side -->
+              <div class="glass-card">
+                <div class="glass-card-header">
+                  <h3 style="color: var(--status-warning);"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Impaired Road Sign (Synthesized)</h3>
+                </div>
+                <div class="preview-box" style="margin-bottom: 16px;">
+                  <img id="comp-occ-img" alt="Occluded Sign">
+                </div>
+                <div style="padding: 14px; background: rgba(7, 20, 38, 0.6); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+                  <div style="font-size: 12px; color: var(--text-muted);">Class Prediction:</div>
+                  <h4 id="comp-occ-sign" style="font-size: 18px; color: var(--status-warning); margin-bottom: 6px;">--</h4>
+                  <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px;">
+                    <span>Sign Confidence:</span>
+                    <strong id="comp-occ-conf" style="color: var(--accent-cyan); font-family: var(--font-mono);">--%</strong>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                    <span>Occlusion Status:</span>
+                    <span id="comp-occ-occ" class="badge-status badge-warning">Occluded</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Impact Metric Card -->
+            <div class="glass-card" style="margin-top: 24px;">
+              <div class="glass-card-header">
+                <h3><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg> Autonomous Perception Impact Analysis</h3>
+              </div>
+              <div style="display: flex; gap: 24px; align-items: center; flex-wrap: wrap;">
+                <div style="padding: 18px; background: rgba(7, 20, 38, 0.7); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); text-align: center; min-width: 180px;">
+                  <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px;">Confidence Delta</div>
+                  <div id="comp-delta-conf" style="font-size: 32px; font-weight: 700; font-family: var(--font-mono); color: var(--status-danger);">0%</div>
+                </div>
+                <div style="flex: 1; font-size: 14px; line-height: 1.7; color: var(--text-main);" id="comp-explanation-text">
+                  Awaiting comparative inference...
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== VIEW 5: SAFETY ALERT SYSTEM ==================== -->
+        <section id="view-safety" class="tab-pane">
+          <div class="glass-card" style="margin-bottom: 24px;">
+            <div class="glass-card-header">
+              <h3><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Autonomous Driving Safety Policy Framework</h3>
+            </div>
+            <p style="font-size: 14px; color: var(--text-muted); line-height: 1.7; margin-bottom: 18px;">
+              In safety-critical autonomous mobility, vision models cannot rely solely on a softmax argmax prediction. 
+              RoadGuard AI fuses both classification confidence and physical occlusion probability into deterministic safety policies:
+            </p>
+
+            <div class="grid-3col">
+              <!-- Normal -->
+              <div style="padding: 20px; background: rgba(34, 197, 94, 0.08); border: 1px solid var(--border-success); border-radius: var(--radius-sm);">
+                <span class="badge-status badge-success" style="margin-bottom: 10px;">TIER 1 • NORMAL DETECTION</span>
+                <h4 style="font-size: 15px; margin-bottom: 8px; color: var(--status-success);">Nominal Perception</h4>
+                <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6;">
+                  Condition: Sign is Clear AND confidence &ge; 60%.<br>
+                  <strong>Action:</strong> Autonomous vehicle trajectory planner executes standard speed and lane controls.
+                </p>
+              </div>
+
+              <!-- Caution -->
+              <div style="padding: 20px; background: rgba(245, 158, 11, 0.08); border: 1px solid var(--border-warning); border-radius: var(--radius-sm);">
+                <span class="badge-status badge-warning" style="margin-bottom: 10px;">TIER 2 • CAUTION – BLOCKED</span>
+                <h4 style="font-size: 15px; margin-bottom: 8px; color: var(--status-warning);">Environmental Interference</h4>
+                <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6;">
+                  Condition: Occlusion Head flags occlusion &ge; 50%.<br>
+                  <strong>Action:</strong> Issue perception warning, limit maximum speed, prioritize GPS/map prior validation.
+                </p>
+              </div>
+
+              <!-- Uncertain -->
+              <div style="padding: 20px; background: rgba(239, 68, 68, 0.08); border: 1px solid var(--border-danger); border-radius: var(--radius-sm);">
+                <span class="badge-status badge-danger" style="margin-bottom: 10px;">TIER 3 • UNCERTAIN</span>
+                <h4 style="font-size: 15px; margin-bottom: 8px; color: var(--status-danger);">Human Verification Required</h4>
+                <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6;">
+                  Condition: Sign Confidence &lt; 60% OR conflicting heads.<br>
+                  <strong>Action:</strong> Disengage high-speed autonomy, alert driver takeover, trigger sensor fusion fail-safe.
+                </p>
+              </div>
+            </div>
+
+            <div style="margin-top: 24px; padding: 14px 18px; background: rgba(7, 20, 38, 0.8); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); font-size: 12px; color: var(--text-dim);">
+              <strong>Academic Disclaimer:</strong> RoadGuard AI is an academic machine learning research system developed for algorithmic exploration of dual-head occlusion detection. It is not certified under ISO 26262 ASIL-D for real-world vehicular actuation.
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== VIEW 6: MODEL PERFORMANCE ==================== -->
+        <section id="view-performance" class="tab-pane">
+          <!-- Training Curves -->
+          <div class="grid-2col">
+            <div class="glass-card">
+              <div class="glass-card-header">
+                <h3><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Training & Validation Loss Curves</h3>
+              </div>
+              <div style="height: 280px; position: relative;">
+                <canvas id="chart-loss-history"></canvas>
+              </div>
+            </div>
+
+            <div class="glass-card">
+              <div class="glass-card-header">
+                <h3><svg viewBox="0 0 24 24"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg> Dual-Head Classification Accuracy</h3>
+              </div>
+              <div style="height: 280px; position: relative;">
+                <canvas id="chart-accuracy-history"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Confusion Matrix Plot & Precision-Recall Rationale -->
+          <div class="grid-2col">
+            <div class="glass-card">
+              <div class="glass-card-header">
+                <h3><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg> Occlusion Detection Confusion Matrix</h3>
+              </div>
+              <div style="text-align: center; padding: 10px;">
+                <img src="/results/confusion_matrix.png" alt="Confusion Matrix Heatmap" style="max-width: 100%; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);" onerror="this.src=''; this.alt='Confusion matrix heatmap generated upon training completion.';">
+              </div>
+            </div>
+
+            <div class="glass-card">
+              <div class="glass-card-header">
+                <h3><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> Precision vs Recall in Safety-Critical AI</h3>
+              </div>
+              <div style="font-size: 13px; line-height: 1.8; color: var(--text-muted);">
+                <p style="margin-bottom: 12px;">
+                  In standard computer vision, overall accuracy is often celebrated. However, in autonomous driving perception:
+                </p>
+                <div style="margin-bottom: 10px; padding: 10px 14px; background: rgba(7, 20, 38, 0.7); border-radius: var(--radius-sm); border-left: 3px solid var(--status-warning);">
+                  <strong style="color: var(--status-warning);">Recall (Sensitivity):</strong> Measures <em>"Of all truly occluded signs, how many did the system catch?"</em>
+                  <br>A false negative (missing an occluded STOP sign) can result in catastrophic collision. Therefore, high recall is vital.
+                </div>
+                <div style="margin-bottom: 10px; padding: 10px 14px; background: rgba(7, 20, 38, 0.7); border-radius: var(--radius-sm); border-left: 3px solid var(--accent-cyan);">
+                  <strong style="color: var(--accent-cyan);">Precision:</strong> Measures <em>"When the system flags an occlusion, is it genuinely blocked?"</em>
+                  <br>Low precision causes "phantom cautions", eroding operator trust and causing unnecessary decelerations.
+                </div>
+                <p>
+                  RoadGuard AI balances both metrics via joint multi-task representation learning and weighted loss optimization.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/main.js"></script>
+  <script src="js/scanner.js"></script>
+  <script src="js/simulator.js"></script>
+  <script src="js/charts.js"></script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+# Virtual environment
+.venv/
+venv/
+ENV/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Raw dataset generated bulk files (leave dataset README and structure)
+dataset/Images/
+dataset/GTSRB/
+dataset/Train/
+dataset/Test/
+
+# Matplotlib & OS
+.matplotlib/
+.DS_Store
+Thumbs.db
